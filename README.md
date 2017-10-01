@@ -1,5 +1,11 @@
-Seafile Docker container based on Ubuntu
+[Seafile](https://www.seafile.com) Docker container based on Ubuntu
 originating from [here](https://github.com/m3adow/dockerfiles)
+
+[![Docker Stars](https://img.shields.io/docker/stars/gronis/seafile.svg)](https://hub.docker.com/r/gronis/seafile/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/gronis/seafile.svg)](https://hub.docker.com/r/gronis/seafile/)
+[![Docker Build](https://img.shields.io/docker/automated/gronis/seafile.svg)](https://hub.docker.com/r/gronis/seafile/)
+[![Layers](https://images.microbadger.com/badges/image/gronis/seafile.svg)](https://microbadger.com/images/gronis/seafile)
+[![Version](https://images.microbadger.com/badges/version/gronis/seafile.svg)](https://microbadger.com/images/gronis/seafile)
 
 ### Features
 
@@ -31,7 +37,7 @@ Filetree:
 ```
 
 All important data is stored under /seafile, so you should be mounting a volume there (recommended), as shown in the example configurations, or at the respective subdirectories.
-There are a plethora of environment variables which might be needed for your setup. I recommend using Dockers `--env-file` option.
+There are a plethora of environment variables which might be needed for your setup.
 
 **Mandatory ENV variables for auto setup**
 
