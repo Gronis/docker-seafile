@@ -143,25 +143,22 @@ services:
     container_name: seafile-db
     restart: unless-stopped
     volumes:
-      - './seafile-db-data:/app'
-      - './seafile-db-lock:/run/mysqld'
+      - ./seafile-db-data:/app
+      - ./seafile-db-lock:/run/mysqld
     environment:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 ```
 
-### Web server
-This container does not include a safe https web server. It's intended to be run behind a reverse proxy. You can read more about that in the Seafile manual: http://manual.seafile.com/deploy/
+### Complete HTTPS Web server
+This container is intended to be run behind a reverse proxy. You can read more about that in the Seafile manual: http://manual.seafile.com/deploy/
 
 I'll recommend to use nginx reverse proxy with automated updating process with letsencrypt. This requires you to own the domain you are using. Here is a full example, using MySQL and together with nginx reverse proxy, assuming the domain name is `seafile.example.com`
 
-NOTE: This exact config is currently untested, so let me know if it doesn't work.
-
-NOTE: This config needs the [nginx.tmpl](https://github.com/jwilder/nginx-proxy/blob/master/nginx.tmpl) to generate the nginx configuration
+NOTE: Use [nginx.tmpl](https://github.com/jwilder/nginx-proxy/blob/master/nginx.tmpl) to generate the nginx config. Here, I assume the domain name `seafile.example.com` but switch it out for your own domain.
 
 ```yaml
 version: '2'
 services:
-  # This container host seafile as described above
   seafile:
     image: gronis/seafile
     container_name: seafile
@@ -172,12 +169,11 @@ services:
       - seafile-db
     volumes:
       - ./seafile-container-data:/seafile:rw
-    ports:
-      - 8082:8082
     environment:
       - VIRTUAL_HOST=seafile.example.com
-      - VIRTUAL_NETWORK=nginx-proxy
       - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=seafile.example.com
+      - LETSENCRYPT_EMAIL=youremail@youremailprovider.com
       - SEAFILE_NAME=Seafile
       - SEAFILE_ADDRESS=seafile.example.com
       - SEAFILE_ADMIN=admin@seafile.example.com
@@ -187,7 +183,6 @@ services:
       - MYSQL_USER_PASSWORD=SuperSecretDatabasePassword
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 
-  # This container host seafiles database (MySQL)
   seafile-db:
     image: wangxian/alpine-mysql:latest
     container_name: seafile-db
@@ -248,5 +243,23 @@ services:
       - NGINX_DOCKER_GEN_CONTAINER=nginx-gen
 
 ```
+Since Seafile uses port 8082 to sync files, this extra config must be added to nginx to enable passthrough over the nginx proxy using https.
+This configuration file should be placed in `/etc/nginx/vhost.d/seafile.example.com` on nginx-gen (`./nginx/vhost.d` from the above config), to enable port 8082 to pass though the domain.
+It will automatically be embedded into `/etc/nginx/conf/default.conf` on the nginx server (see more [here](https://github.com/jwilder/nginx-proxy)).
+```conf
+location /seafhttp {
+    rewrite               ^/seafhttp(.*)$ $1 break;
+    proxy_pass            http://seafile:8082;
+    client_max_body_size  0;
+    proxy_connect_timeout 36000s;
+    proxy_read_timeout    36000s;
+    proxy_send_timeout    36000s;
+    send_timeout          36000s;
+}
+```
+To make sure that the proxy is used to sync files instead of using port 8082, Go to admin settings page: `https://seafile.example.com/sys/settings/` and change `SERVICE_URL` and `FILE_SERVER_ROOT` according to this image:
 
+![](imgs/config_routes.png)
+
+### Other
 If you want to run seahub in fastcgi mode, you can pass ENV variables **SEAFILE_FASTCGI=1** and **SEAFILE_FASTCGI_HOST=0.0.0.0**
