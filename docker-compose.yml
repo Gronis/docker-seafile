@@ -1,0 +1,38 @@
+version: '2'
+services:
+  seafile:
+    image: gronis/seafile
+    container_name: seafile
+    restart: unless-stopped
+    depends_on:
+      - seafile-db
+    links:
+      - seafile-db
+    volumes:
+      - ./seafile-container-data:/seafile:rw
+    ports:
+      - 8000:8000
+      - 8082:8082
+      #Port 8080 is used for seafdav which is disabled by default
+#      - 8080:8080
+    environment:
+      - SEAFILE_NAME=Seafile
+      - SEAFILE_ADDRESS=192.168.1.138
+      - SEAFILE_ADMIN=admin@seafile.example.com
+      - SEAFILE_ADMIN_PW=password
+      - MYSQL_SERVER=seafile-db
+      - MYSQL_USER=seafile
+      - MYSQL_USER_PASSWORD=password
+      - MYSQL_ROOT_PASSWORD=root
+
+  seafile-db:
+    image: wangxian/alpine-mysql:latest
+    container_name: seafile-db
+    restart: unless-stopped
+    volumes:
+      - './seafile-db-data:/app'
+      - './seafile-db-lock:/run/mysqld'
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+#    networks:
+#      - proxy-tier
