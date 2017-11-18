@@ -259,7 +259,7 @@ location /seafhttp {
 ```
 To make sure that the proxy is used to sync files instead of using port 8082, Go to admin settings page: `https://seafile.example.com/sys/settings/` and change `SERVICE_URL` and `FILE_SERVER_ROOT` according to this image:
 
-![](imgs/config_routes.png)
+![](https://raw.githubusercontent.com/Gronis/docker-seafile/master/imgs/config_routes.png)
 
 ### Other
 If you want to run seahub in fastcgi mode, you can pass ENV variables **SEAFILE_FASTCGI=1** and **SEAFILE_FASTCGI_HOST=0.0.0.0**
