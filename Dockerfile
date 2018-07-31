@@ -4,7 +4,8 @@ MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
   && apt-get install -y python2.7 libpython2.7 python-mysqldb \
       python-setuptools python-imaging python-ldap sqlite3 \
-      python-memcache curl \
+      python-memcache curl ffmpeg python-pip\
+  && pip install moviepy \
   && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 
