@@ -139,7 +139,10 @@ move_and_link() {
   move_files "${SH_DB_DIR}"
   link_files "${SH_DB_DIR}"
 
-  chown -R seafile:seafile ${DATADIR}/
+  if ! gosu seafile bash -c "test -w ${DATADIR}"; then
+    echo "Updating file permissions"
+    chown -R seafile:seafile ${DATADIR}/
+  fi
 }
 
 move_files() {
