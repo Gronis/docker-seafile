@@ -1,0 +1,36 @@
+version: '3.6'
+services:
+  seafile:
+    build: https://github.com/fmoledina/docker-seafile.git
+    container_name: seafile
+    hostname: seafile
+    restart: unless-stopped
+    depends_on:
+      - seafile-db
+    volumes:
+      - ./seafile-container-data:/seafile:rw
+    environment:
+      - SEAFILE_NAME=Seafile
+      - SEAFILE_ADDRESS=seafile.example.com
+      - SEAFILE_ADMIN=admin@seafile.example.com
+      - SEAFILE_ADMIN_PW=SuperSecretPassword
+      - MYSQL_SERVER=seafile-db
+      - MYSQL_USER=seafile
+      - MYSQL_USER_PASSWORD=SuperSecretDatabasePassword
+      - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
+      - CCNET_DB=custom_ccnet_db     # Optional
+      - SEAFILE_DB=custom_seafile_db # Optional
+      - SEAHUB_DB=custom_seahub_db   # Optional
+
+  seafile-db:
+    hostname: seafile-db
+    image: linuxserver/mariadb
+    container_name: seafile-db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./mariadb:/config

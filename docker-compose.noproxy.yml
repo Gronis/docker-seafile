@@ -1,0 +1,13 @@
+version: '2'
+services:
+  seafile:
+    ports:
+      - 8000:8000
+      - 8082:8082
+
+  seafile-db:
+    ports:
+      - target: 3306
+        published: 3306
+        protocol: tcp
+        mode: host
