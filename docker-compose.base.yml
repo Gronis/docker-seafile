@@ -1,7 +1,7 @@
 version: '3.6'
 services:
   seafile:
-    build: https://github.com/fmoledina/docker-seafile.git
+    image: gronis/seafile
     container_name: seafile
     hostname: seafile
     restart: unless-stopped
