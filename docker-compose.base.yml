@@ -1,18 +1,14 @@
-version: '2'
+version: '3.6'
 services:
   seafile:
-    image: gronis/seafile
+    build: https://github.com/fmoledina/docker-seafile.git
     container_name: seafile
+    hostname: seafile
     restart: unless-stopped
     depends_on:
       - seafile-db
-    links:
-      - seafile-db
     volumes:
       - ./seafile-container-data:/seafile:rw
-    ports:
-      - 8000:8000
-      - 8082:8082
     environment:
       - SEAFILE_NAME=Seafile
       - SEAFILE_ADDRESS=seafile.example.com
@@ -22,13 +18,19 @@ services:
       - MYSQL_USER=seafile
       - MYSQL_USER_PASSWORD=SuperSecretDatabasePassword
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
+      - CCNET_DB=custom_ccnet_db     # Optional
+      - SEAFILE_DB=custom_seafile_db # Optional
+      - SEAHUB_DB=custom_seahub_db   # Optional
 
   seafile-db:
-    image: wangxian/alpine-mysql:latest
+    hostname: seafile-db
+    image: linuxserver/mariadb
     container_name: seafile-db
-    restart: unless-stopped
-    volumes:
-      - ./seafile-db-data:/app
-      - ./seafile-db-lock:/run/mysqld
+    restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./mariadb:/config

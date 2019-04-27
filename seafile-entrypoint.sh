@@ -4,7 +4,7 @@ DATADIR=${DATADIR:-"/seafile"}
 BASEPATH=${BASEPATH:-"/opt/haiwen"}
 INSTALLPATH=${INSTALLPATH:-"${BASEPATH}/$(ls -1 ${BASEPATH} | grep -E '^seafile-server-[0-9.-]+')"}
 VERSION=$(echo $INSTALLPATH | grep -oE [0-9.]+)
-OLD_VERSION=$(cat $DATADIR/version) || $VERSION
+OLD_VERSION=$(cat $DATADIR/version || $VERSION)
 MAJOR_VERSION=$(echo $VERSION | cut -d. -f 1-2)
 OLD_MAJOR_VERSION=$(echo $OLD_VERSION | cut -d. -f 1-2)
 
