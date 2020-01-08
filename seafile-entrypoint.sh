@@ -7,6 +7,7 @@ VERSION=$(echo $INSTALLPATH | grep -oE [0-9.]+)
 OLD_VERSION=$(cat $DATADIR/version || $VERSION)
 MAJOR_VERSION=$(echo $VERSION | cut -d. -f 1-2)
 OLD_MAJOR_VERSION=$(echo $OLD_VERSION | cut -d. -f 1-2)
+VIRTUAL_PORT=${VIRTUAL_PORT:-"8000"}
 
 set -e
 set -u
@@ -20,6 +21,7 @@ trapped() {
 autorun() {
   # If there's an existing seafile config, link the dirs
   move_and_link
+  fix_gunicorn_config
 
   # Update if neccessary
   if [ $OLD_VERSION != $VERSION ]; then
@@ -143,6 +145,15 @@ move_and_link() {
     echo "Updating file permissions"
     chown -R seafile:seafile ${DATADIR}/
   fi
+}
+
+fix_gunicorn_config(){
+  echo "Fixing gunicorn config."
+  # Must bind 0.0.0.0 instead of 127.0.0.1
+  CONFIG_FILE=/seafile/conf/gunicorn.conf
+  OLD="bind = \"127.0.0.1:${VIRTUAL_PORT}\""
+  NEW="bind = \"0.0.0.0:${VIRTUAL_PORT}\""
+  sed -i "s/${OLD}/${NEW}/g" $CONFIG_FILE
 }
 
 move_files() {
