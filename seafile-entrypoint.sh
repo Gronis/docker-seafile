@@ -4,10 +4,11 @@ DATADIR=${DATADIR:-"/seafile"}
 BASEPATH=${BASEPATH:-"/opt/haiwen"}
 INSTALLPATH=${INSTALLPATH:-"${BASEPATH}/$(ls -1 ${BASEPATH} | grep -E '^seafile-server-[0-9.-]+')"}
 VERSION=$(echo $INSTALLPATH | grep -oE [0-9.]+)
-OLD_VERSION=$(cat $DATADIR/version || $VERSION)
+OLD_VERSION=$(cat $DATADIR/version || echo $VERSION)
 MAJOR_VERSION=$(echo $VERSION | cut -d. -f 1-2)
 OLD_MAJOR_VERSION=$(echo $OLD_VERSION | cut -d. -f 1-2)
 VIRTUAL_PORT=${VIRTUAL_PORT:-"8000"}
+
 
 set -e
 set -u
@@ -21,7 +22,7 @@ trapped() {
 autorun() {
   # If there's an existing seafile config, link the dirs
   move_and_link
-  fix_gunicorn_config
+
 
   # Update if neccessary
   if [ $OLD_VERSION != $VERSION ]; then
@@ -44,6 +45,9 @@ autorun() {
   then
     exit 1
   fi
+
+  fix_gunicorn_config
+
   if [ ${SEAFILE_FASTCGI:-} ]
   then
     control_seahub "start-fastcgi"
