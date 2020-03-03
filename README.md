@@ -1,17 +1,16 @@
-[Seafile](https://www.seafile.com) Docker container based on Ubuntu
+[Seafile](https://www.seafile.com) Server Docker container based on Ubuntu
 originating from [here](https://github.com/m3adow/dockerfiles)
 
 [![Docker Stars](https://img.shields.io/docker/stars/gronis/seafile.svg)](https://hub.docker.com/r/gronis/seafile/)
 [![Docker Pulls](https://img.shields.io/docker/pulls/gronis/seafile.svg)](https://hub.docker.com/r/gronis/seafile/)
 [![Docker Build](https://img.shields.io/docker/automated/gronis/seafile.svg)](https://hub.docker.com/r/gronis/seafile/)
 [![Layers](https://images.microbadger.com/badges/image/gronis/seafile.svg)](https://microbadger.com/images/gronis/seafile)
-[![Version](https://images.microbadger.com/badges/version/gronis/seafile.svg)](https://microbadger.com/images/gronis/seafile)
 
 ### Features
 
 * Comes with the newest seafile version at rebuild
-* Automatically runs upgrade scripts (when recreating docker image) provided by seafile
-* Automatically run seafile garbage collector (when recreating docker image)
+* Automatically runs upgrade scripts (when pulling a newer image) provided by seafile
+* Automatically run seafile garbage collector (every startup)
 * Configurable to run with MySQL/MariaDB or SQLite
 * Auto-setup at initial run
 
@@ -59,6 +58,15 @@ If you want to use MySQL/MariaDB, the following variables are needed:
 **Optional ENV variables for auto setup with MySQL/MariaDB**
 * **MYSQL_USER_HOST**: Host the MySQL User is allowed from (default: '%')
 * **MYSQL_ROOT_PASSWORD**: If you haven't set up the MySQL tables by yourself, Seafile will do it for you when being provided with the MySQL root password
+
+**Optinal ENV variables**
+- **MODE** Use to configure what should be done when starting the image.
+  - **autorun** (default). Setup new server if necessary. Setup file permissions. Garbage Collect. Start seafile server and seahub. 
+  - **run_only**. Just start server. Do not garbage collect.
+  - **maintenance**. Don't start anything. Just keep the container alive so that you can login to it.
+  - **setup_mysql**. Setup new server with mysql.
+  - **setup_sqlite**. Setup new server with sqlite.
+  - **update**. Perform update step only.
 
 If you plan on omitting /seafile as a volume and mount the subdirectories instead, you'll need to additionally specify `SEAHUB_DB_DIR` which containes the subdirectory of /seafile the *seahub.db* file shall be put in.
 
