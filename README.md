@@ -59,9 +59,9 @@ If you want to use MySQL/MariaDB, the following variables are needed:
 * **MYSQL_USER_HOST**: Host the MySQL User is allowed from (default: '%')
 * **MYSQL_ROOT_PASSWORD**: If you haven't set up the MySQL tables by yourself, Seafile will do it for you when being provided with the MySQL root password
 
-**Optinal ENV variables**
+**Optional ENV variables**
 - **MODE** Use to configure what should be done when starting the image.
-  - **autorun** (default). Setup new server if necessary. Setup file permissions. Garbage Collect. Start seafile server and seahub. 
+  - **autorun** (default). Setup new server if necessary. Setup file permissions. Migrate database (using official seafile scripts). Garbage Collect. Start seafile server and seahub. 
   - **run_only**. Just start server. Do not garbage collect.
   - **maintenance**. Don't start anything. Just keep the container alive so that you can login to it.
   - **setup_mysql**. Setup new server with mysql.
