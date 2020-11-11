@@ -59,8 +59,8 @@ autorun() {
 
 run_only() {
   local SH_DB_DIR="${DATADIR}/${SEAHUB_DB_DIR}"
-  # Linking must always be done
-  link_files "${SH_DB_DIR}"
+  # Moving and linking must always be done
+  move_and_link
   control_seafile "start"
   control_seahub "start"
   keep_in_foreground
@@ -161,12 +161,21 @@ fix_gunicorn_config(){
 }
 
 move_files() {
-  for SEADIR in "ccnet" "conf" "seafile-data" "seahub-data"
+  MOVE_LIST=(
+    "${BASEPATH}/ccnet:${DATADIR}"
+    "${BASEPATH}/conf:${DATADIR}"
+    "${BASEPATH}/seafile-data:${DATADIR}"
+    "${BASEPATH}/seahub-data:${DATADIR}"
+    "${INSTALLPATH}/seahub/media/avatars:${DATADIR}/seahub-data"
+  )
+  for SEADIR in ${MOVE_LIST[@]}
   do
-    if [ -e "${BASEPATH}/${SEADIR}" -a ! -L "${BASEPATH}/${SEADIR}" ]
+    ARGS=($(echo $SEADIR | tr ":" "\n"))
+    if [ -e "${ARGS[0]}" ]
     then
-      cp -a ${BASEPATH}/${SEADIR} ${DATADIR}
-      rm -rf "${BASEPATH}/${SEADIR}"
+      echo "Copying ${ARGS[0]} => ${ARGS[1]}"
+      cp -a ${ARGS[0]} ${ARGS[1]}
+      rm -rf ${ARGS[0]}
     fi
   done
 
@@ -177,17 +186,22 @@ move_files() {
 }
 
 link_files() {
-  for SEADIR in "ccnet" "conf" "seafile-data" "seahub-data"
+  LINK_LIST=(
+    "${DATADIR}/ccnet:${BASEPATH}/ccnet"
+    "${DATADIR}/conf:${BASEPATH}/conf"
+    "${DATADIR}/seafile-data:${BASEPATH}/seafile-data"
+    "${DATADIR}/seahub-data:${BASEPATH}/seahub-data"
+    "${DATADIR}/seahub-data/avatars:${INSTALLPATH}/seahub/media/avatars"
+  )
+  for SEADIR in ${LINK_LIST[@]}
   do
-    if [ -e "${DATADIR}/${SEADIR}" ]
+    ARGS=($(echo $SEADIR | tr ":" "\n"))
+    if [ -e "${ARGS[0]}" ]
     then
-      # ls for debugging reasons
-      ls -ld ${DATADIR}/${SEADIR}
-      ls -lA ${DATADIR}/${SEADIR}
-      ln -sf ${DATADIR}/${SEADIR} ${BASEPATH}/${SEADIR}
+      echo "Linking ${ARGS[1]} => ${ARGS[0]}"
+      ln -sf ${ARGS[0]} ${ARGS[1]}
     fi
   done
-
   if [ -e "${SH_DB_DIR}/seahub.db" -a ! -L "${BASEPATH}/seahub.db" ]
   then
     ln -s ${1}/seahub.db ${BASEPATH}/seahub.db
@@ -275,7 +289,17 @@ collect_garbage(){
   return ${RET}
 }
 
+diagnose(){
+  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/seaf-fsck.sh $@"
+  local RET=$?
+  sleep 1
+  return ${RET}
+}
+
 maintenance(){
+  local SH_DB_DIR="${DATADIR}/${SEAHUB_DB_DIR}"
+  # Linking must always be done
+  link_files "${SH_DB_DIR}"
   echo ""
   echo "---------------------------------------"
   echo "Running in maintenance mode"
@@ -318,6 +342,9 @@ case $MODE in
   ;;
   "update")
     full_update
+  ;;
+  "diagnose")
+    diagnose
   ;;
   "maintenance")
     maintenance
