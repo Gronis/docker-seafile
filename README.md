@@ -10,9 +10,12 @@ originating from [here](https://github.com/m3adow/dockerfiles)
 
 * Comes with the newest seafile version at rebuild
 * Automatically runs upgrade scripts (when pulling a newer image) provided by seafile
-* Automatically run seafile garbage collector (every startup)
 * Configurable to run with MySQL/MariaDB or SQLite
 * Auto-setup at initial run
+* Supports different startup modes:
+  - garbage_collect: Run garbage collector instead of starting server
+  - autorun: Default mode, setups server (if neccessary), upgrade database, then run server.
+  - maintenance: Only start the container. You can log into it with docker exec and work on it.
 
 ### Overview
 
@@ -67,6 +70,8 @@ If you want to use MySQL/MariaDB, the following variables are needed:
   - **setup_mysql**. Setup new server with mysql.
   - **setup_sqlite**. Setup new server with sqlite.
   - **update**. Perform update step only.
+    **diagnose**. Fix broken repositories (seaf-fsck).
+    **collect_garbage**. Run garbage collection. This must be done while server is offline.
 
 If you plan on omitting /seafile as a volume and mount the subdirectories instead, you'll need to additionally specify `SEAHUB_DB_DIR` which containes the subdirectory of /seafile the *seahub.db* file shall be put in.
 
