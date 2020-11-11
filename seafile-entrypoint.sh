@@ -4,10 +4,14 @@ DATADIR=${DATADIR:-"/seafile"}
 BASEPATH=${BASEPATH:-"/opt/haiwen"}
 INSTALLPATH=${INSTALLPATH:-"${BASEPATH}/$(ls -1 ${BASEPATH} | grep -E '^seafile-server-[0-9.-]+')"}
 VERSION=$(echo $INSTALLPATH | grep -oE [0-9.]+)
-OLD_VERSION=$(cat $DATADIR/version || echo $VERSION)
+OLD_VERSION=$(cat $DATADIR/version 2> /dev/null || echo $VERSION)
 MAJOR_VERSION=$(echo $VERSION | cut -d. -f 1-2)
 OLD_MAJOR_VERSION=$(echo $OLD_VERSION | cut -d. -f 1-2)
 VIRTUAL_PORT=${VIRTUAL_PORT:-"8000"}
+
+python3 --version
+ldd --version
+ls ${BASEPATH}/ccnet
 
 
 set -e
@@ -23,16 +27,13 @@ autorun() {
   # If there's an existing seafile config, link the dirs
   move_and_link
 
-
   # Update if neccessary
   if [ $OLD_VERSION != $VERSION ]; then
     full_update
   fi
   echo $VERSION > $DATADIR/version
-
   # Needed to check the return code
   set +e
-  collect_garbage
   control_seafile "start"
   local RET=$?
   set -e
@@ -92,7 +93,7 @@ setup_mysql() {
   OPTIONAL_PARMS="$([ -n "${MYSQL_ROOT_PASSWORD}" ] && printf '%s' "-r ${MYSQL_ROOT_PASSWORD}")"
   set -u
 
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/setup-seafile-mysql.sh auto \
+  su - seafile -c  ". /tmp/seafile.env; ${INSTALLPATH}/setup-seafile-mysql.sh auto \
     -n "${SEAFILE_NAME}" \
     -i "${SEAFILE_ADDRESS}" \
     -p "${SEAFILE_PORT}" \
@@ -111,7 +112,7 @@ setup_mysql() {
 setup_sqlite() {
   echo "setup_sqlite"
   # Setup Seafile
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/setup-seafile.sh auto \
+  su - seafile -c  ". /tmp/seafile.env; ${INSTALLPATH}/setup-seafile.sh auto \
     -n "${SEAFILE_NAME}" \
     -i "${SEAFILE_ADDRESS}" \
     -p "${SEAFILE_PORT}" \
@@ -130,8 +131,8 @@ setup_seahub() {
 
   control_seafile "start"
 
-  gosu seafile bash -c ". /tmp/seafile.env; python -t ${INSTALLPATH}/check_init_admin.py"
-  # gosu seafile bash -c ". /tmp/seafile.env; python -m trace -t ${INSTALLPATH}/check_init_admin.py | tee -a /seafile/check_init_admin.log"
+  su - seafile -c  ". /tmp/seafile.env; python3 -t ${INSTALLPATH}/check_init_admin.py"
+  # su - seafile -c ". /tmp/seafile.env; python3 -m trace -t ${INSTALLPATH}/check_init_admin.py | tee -a /seafile/check_init_admin.log"
 }
 
 move_and_link() {
@@ -145,16 +146,16 @@ move_and_link() {
   move_files "${SH_DB_DIR}"
   link_files "${SH_DB_DIR}"
 
-  if ! gosu seafile bash -c "test -w ${DATADIR}"; then
+  if ! su - seafile -c "test -w ${DATADIR}"; then
     echo "Updating file permissions"
     chown -R seafile:seafile ${DATADIR}/
   fi
 }
 
-fix_gunicorn_config(){
+fix_gunicorn_config() {
   echo "Fixing gunicorn config."
   # Must bind 0.0.0.0 instead of 127.0.0.1
-  CONFIG_FILE=/seafile/conf/gunicorn.conf
+  CONFIG_FILE=/seafile/conf/gunicorn.conf.py
   OLD="bind = \"127.0.0.1:${VIRTUAL_PORT}\""
   NEW="bind = \"0.0.0.0:${VIRTUAL_PORT}\""
   sed -i "s/${OLD}/${NEW}/g" $CONFIG_FILE
@@ -162,19 +163,28 @@ fix_gunicorn_config(){
 
 move_files() {
   MOVE_LIST=(
-    "${BASEPATH}/ccnet:${DATADIR}"
-    "${BASEPATH}/conf:${DATADIR}"
-    "${BASEPATH}/seafile-data:${DATADIR}"
-    "${BASEPATH}/seahub-data:${DATADIR}"
-    "${INSTALLPATH}/seahub/media/avatars:${DATADIR}/seahub-data"
+    "${BASEPATH}/ccnet:${DATADIR}/ccnet"
+    "${BASEPATH}/conf:${DATADIR}/conf"
+    "${BASEPATH}/seafile-data:${DATADIR}/seafile-data"
+    "${BASEPATH}/seahub-data:${DATADIR}/seahub-data"
+    "${INSTALLPATH}/seahub/media/avatars:${DATADIR}/seahub-data/avatars"
   )
   for SEADIR in ${MOVE_LIST[@]}
   do
     ARGS=($(echo $SEADIR | tr ":" "\n"))
-    if [ -e "${ARGS[0]}" ]
+    if [ -e "${ARGS[0]}" ] && [ ! -e "${ARGS[1]}" ]
     then
       echo "Copying ${ARGS[0]} => ${ARGS[1]}"
-      cp -a ${ARGS[0]} ${ARGS[1]}
+      local PARENT=$(dirname ${ARGS[1]})
+      if [ ! -e $PARENT ]
+      then
+        mkdir -p $PARENT
+      fi
+      cp -a ${ARGS[0]}/ ${ARGS[1]}
+    fi
+    if [ -e "${ARGS[0]}" ] && [ ! -L "${ARGS[0]}" ]
+    then
+      echo "Dropping ${ARGS[0]}"
       rm -rf ${ARGS[0]}
     fi
   done
@@ -232,23 +242,49 @@ prepare_env() {
   export CCNET_CONF_DIR="${BASEPATH}/ccnet"
   export SEAFILE_CONF_DIR="${SEAFILE_DATA_DIR}"
   export SEAFILE_CENTRAL_CONF_DIR="${BASEPATH}/conf"
-  export PYTHONPATH=${INSTALLPATH}/seafile/lib/python2.6/site-packages:${INSTALLPATH}/seafile/lib64/python2.6/site-packages:${INSTALLPATH}/seahub:${INSTALLPATH}/seahub/thirdpart:${INSTALLPATH}/seafile/lib/python2.7/site-packages:${INSTALLPATH}/seafile/lib64/python2.7/site-packages:${PYTHONPATH:-}
+  export PYTHONPATH=${INSTALLPATH}/seafile/lib/python3.6/site-packages:${INSTALLPATH}/seafile/lib64/python3.6/site-packages:${INSTALLPATH}/seahub:${INSTALLPATH}/seahub/thirdpart:${INSTALLPATH}/seafile/lib/python3.6/site-packages:${INSTALLPATH}/seafile/lib64/python3.6/site-packages:${PYTHONPATH:-}
 
 _EOF_
 }
 
 control_seafile() {
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/seafile.sh "$@""
+  su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seafile.sh "$@""
   local RET=$?
-  sleep 1
+  if [ $RET -gt 0 ]; then
+    print_log
+  fi
   return ${RET}
 }
 
 control_seahub() {
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/seahub.sh "$@""
+  su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seahub.sh "$@""
   local RET=$?
-  sleep 1
+  if [ $RET -gt 0 ]; then
+    print_log
+  fi
   return ${RET}
+}
+
+print_log() {
+    if [ -e $INSTALLPATH/../logs ]
+    then
+      sleep 2
+      echo ""
+      echo "---------------------------------------"
+      echo "seafile.log:"
+      echo "---------------------------------------"
+      cat $INSTALLPATH/../logs/seafile.log
+      echo ""
+      echo "---------------------------------------"
+      echo "controller.log:"
+      echo "---------------------------------------"
+      cat $INSTALLPATH/../logs/controller.log
+      echo ""
+      echo "---------------------------------------"
+      echo "ccnet.log:"
+      echo "---------------------------------------"
+      cat $INSTALLPATH/../logs/ccnet.log
+    fi
 }
 
 full_update(){
@@ -276,21 +312,21 @@ full_update(){
 }
 
 update(){
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/upgrade/$@"
+  su - seafile -c ". /tmp/seafile.env; echo -ne '\n' | ${INSTALLPATH}/upgrade/$@"
   local RET=$?
   sleep 1
   return ${RET}
 }
 
 collect_garbage(){
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/seaf-gc.sh $@"
+  su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seaf-gc.sh $@"
   local RET=$?
   sleep 1
   return ${RET}
 }
 
 diagnose(){
-  gosu seafile bash -c ". /tmp/seafile.env; ${INSTALLPATH}/seaf-fsck.sh $@"
+  su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seaf-fsck.sh $@"
   local RET=$?
   sleep 1
   return ${RET}
@@ -345,6 +381,9 @@ case $MODE in
   ;;
   "diagnose")
     diagnose
+  ;;
+  "collect_garbage")
+    collect_garbage
   ;;
   "maintenance")
     maintenance
