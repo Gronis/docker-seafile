@@ -24,9 +24,6 @@ trapped() {
 }
 
 autorun() {
-  # If there's an existing seafile config, link the dirs
-  move_and_link
-
   # Update if neccessary
   if [ $OLD_VERSION != $VERSION ]; then
     full_update
@@ -60,8 +57,6 @@ autorun() {
 
 run_only() {
   local SH_DB_DIR="${DATADIR}/${SEAHUB_DB_DIR}"
-  # Moving and linking must always be done
-  move_and_link
   control_seafile "start"
   control_seahub "start"
   keep_in_foreground
@@ -209,7 +204,7 @@ link_files() {
     if [ -e "${ARGS[0]}" ]
     then
       echo "Linking ${ARGS[1]} => ${ARGS[0]}"
-      ln -sf ${ARGS[0]} ${ARGS[1]}
+      su - seafile -c "ln -sf ${ARGS[0]} ${ARGS[1]}"
     fi
   done
   if [ -e "${SH_DB_DIR}/seahub.db" -a ! -L "${BASEPATH}/seahub.db" ]
@@ -357,6 +352,7 @@ SEAHUB_DB_DIR=${SEAHUB_DB_DIR:-}
 prepare_env
 
 trap trapped SIGINT SIGTERM
+move_and_link
 case $MODE in
   "autorun" | "run")
     autorun
