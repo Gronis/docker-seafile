@@ -285,6 +285,3 @@ services:
       - SERVICE_URL=https://seafile.example.com
       - FILE_SERVER_ROOT=https://seafile.example.com/seafhttp
 ```
-
-### Other
-If you want to run seahub in fastcgi mode, you can pass ENV variables **SEAFILE_FASTCGI=1** and **SEAFILE_FASTCGI_HOST=0.0.0.0**
