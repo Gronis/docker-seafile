@@ -72,6 +72,8 @@ If you want to use MySQL/MariaDB, the following variables are needed:
   - **update**. Perform update step only.
     **diagnose**. Fix broken repositories (seaf-fsck).
     **collect_garbage**. Run garbage collection. This must be done while server is offline.
+  **FILE_SERVER_ROOT** Set `FILE_SERVER_ROOT` variable in seahub config
+  **SERVICE_URL** Set `SERVICE_URL` variable in seahub config
 
 If you plan on omitting /seafile as a volume and mount the subdirectories instead, you'll need to additionally specify `SEAHUB_DB_DIR` which containes the subdirectory of /seafile the *seahub.db* file shall be put in.
 
@@ -191,6 +193,8 @@ services:
       - SEAFILE_ADDRESS=seafile.example.com
       - SEAFILE_ADMIN=admin@seafile.example.com
       - SEAFILE_ADMIN_PW=SuperSecretPassword
+      - SERVICE_URL=https://seafile.example.com
+      - FILE_SERVER_ROOT=https://seafile.example.com/seafhttp
       - MYSQL_SERVER=seafile-db
       - MYSQL_USER=seafile
       - MYSQL_USER_PASSWORD=SuperSecretDatabasePassword
@@ -270,9 +274,17 @@ location /seafhttp {
     send_timeout          36000s;
 }
 ```
-To make sure that the proxy is used to sync files instead of using port 8082, Go to admin settings page: `https://seafile.example.com/sys/settings/` and change `SERVICE_URL` and `FILE_SERVER_ROOT` according to this image:
+To make sure that the proxy is used to sync files instead of using port 8082, add `SERVICE_URL` and `FILE_SERVER_ROOT` environment variables to `docker-compose.yaml` like so:
 
-![](https://raw.githubusercontent.com/Gronis/docker-seafile/master/imgs/config_routes.png)
+```yaml
+services:
+  seafile:
+#   ...
+    environment:
+#     ...
+      - SERVICE_URL=https://seafile.example.com
+      - FILE_SERVER_ROOT=https://seafile.example.com/seafhttp
+```
 
 ### Other
 If you want to run seahub in fastcgi mode, you can pass ENV variables **SEAFILE_FASTCGI=1** and **SEAFILE_FASTCGI_HOST=0.0.0.0**

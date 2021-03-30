@@ -44,7 +44,8 @@ autorun() {
     exit 1
   fi
 
-  fix_gunicorn_config
+  update_gunicorn_config
+  update_seahub_config
 
   if [ ${SEAFILE_FASTCGI:-} ]
   then
@@ -147,13 +148,50 @@ move_and_link() {
   fi
 }
 
-fix_gunicorn_config() {
-  echo "Fixing gunicorn config."
+update_config() {
+  VARIABLE_NAME=$1
+  CONFIG_FILE=$2
+  if [ $# -ge 3 ]; then
+    VARIABLE_VALUE=$3
+  else
+    # Grab variable value from environment if not passed as argument.
+    set +e
+    env | grep $VARIABLE_NAME > /dev/null
+    EXISTS_IN_ENV=$?
+    set -e
+    if [[ $EXISTS_IN_ENV -ne 0 ]]; then
+      # Not passed as argument and not in env, no configuration needed.
+      return
+    fi
+    VARIABLE_VALUE=$(env | grep $VARIABLE_NAME | sed "s/${VARIABLE_NAME}=//g")
+  fi
+  echo "Updating $VARIABLE_NAME in $CONFIG_FILE."
+  ESCAPED_VALUE=$(printf '%s\n' "$VARIABLE_VALUE" | sed -e 's/[\/&]/\\&/g')
+  set +e
+  grep $VARIABLE_NAME $CONFIG_FILE > /dev/null
+  EXISTS=$?
+  set -e
+  if [[ "${EXISTS}" -eq 0 ]]; then
+    OLD="$VARIABLE_NAME = .*$"
+    NEW="$VARIABLE_NAME = \"${ESCAPED_VALUE}\""
+  sed -i "s/${OLD}/${NEW}/g" $CONFIG_FILE
+  else
+    NEW="$VARIABLE_NAME = \"${VARIABLE_VALUE}\""
+    echo ${NEW} >> $CONFIG_FILE
+  fi
+}
+
+
+update_gunicorn_config() {
   # Must bind 0.0.0.0 instead of 127.0.0.1
   CONFIG_FILE=/seafile/conf/gunicorn.conf.py
-  OLD="bind = \"127.0.0.1:${VIRTUAL_PORT}\""
-  NEW="bind = \"0.0.0.0:${VIRTUAL_PORT}\""
-  sed -i "s/${OLD}/${NEW}/g" $CONFIG_FILE
+  update_config "bind" $CONFIG_FILE "0.0.0.0:${VIRTUAL_PORT}"
+}
+
+update_seahub_config(){
+  CONFIG_FILE=/seafile/conf/seahub_settings.py
+  update_config "FILE_SERVER_ROOT" $CONFIG_FILE
+  update_config "SERVICE_URL" $CONFIG_FILE
 }
 
 move_files() {
