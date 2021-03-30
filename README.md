@@ -72,8 +72,8 @@ If you want to use MySQL/MariaDB, the following variables are needed:
   - **update**. Perform update step only.
     **diagnose**. Fix broken repositories (seaf-fsck).
     **collect_garbage**. Run garbage collection. This must be done while server is offline.
-  **FILE_SERVER_ROOT** Set `FILE_SERVER_ROOT` variable in seahub config
-  **SERVICE_URL** Set `SERVICE_URL` variable in seahub config
+- **FILE_SERVER_ROOT** Set `FILE_SERVER_ROOT` variable in seahub config
+- **SERVICE_URL** Set `SERVICE_URL` variable in seahub config
 
 If you plan on omitting /seafile as a volume and mount the subdirectories instead, you'll need to additionally specify `SEAHUB_DB_DIR` which containes the subdirectory of /seafile the *seahub.db* file shall be put in.
 
