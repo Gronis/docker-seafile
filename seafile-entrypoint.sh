@@ -221,7 +221,7 @@ keep_in_foreground() {
   # leading to a script abortion thanks to "set -e".
   while true
   do
-    for SEAFILE_PROC in "seafile-control" "ccnet-server" "seaf-server" "gunicorn"
+    for SEAFILE_PROC in "seafile-control" "seaf-server" "gunicorn"
     do
       pkill -0 -f "${SEAFILE_PROC}"
       sleep 1
