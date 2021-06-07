@@ -1,7 +1,7 @@
 FROM debian:buster-slim
 MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 
-ENV VERSION=8.0.4
+ENV VERSION=8.0.5
 ENV DOCKERIZE_VERSION v0.6.1
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
