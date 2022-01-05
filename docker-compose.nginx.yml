@@ -27,12 +27,11 @@ services:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 
   seafile-db:
-    image: wangxian/alpine-mysql:latest
+    image: mariadb:latest
     container_name: seafile-db
     restart: unless-stopped
     volumes:
-      - ./seafile-db-data:/app
-      - ./seafile-db-lock:/run/mysqld
+      - ./seafile-db-data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 
@@ -70,7 +69,7 @@ services:
 
   # This container refreshes the https certificate
   letsencrypt-nginx-proxy-companion:
-    image: jrcs/letsencrypt-nginx-proxy-companion:v1.4
+    image: nginxproxy/acme-companion
     container_name: letsencrypt-nginx-proxy-companion
     restart: unless-stopped
     depends_on:

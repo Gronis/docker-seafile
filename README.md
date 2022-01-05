@@ -242,7 +242,7 @@ services:
 
   # This container refreshes the https certificate
   letsencrypt-nginx-proxy-companion:
-    image: jrcs/letsencrypt-nginx-proxy-companion:v1.4
+    image: nginxproxy/acme-companion
     container_name: letsencrypt-nginx-proxy-companion
     restart: unless-stopped
     depends_on:
