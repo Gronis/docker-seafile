@@ -154,12 +154,11 @@ services:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 
   seafile-db:
-    image: wangxian/alpine-mysql:latest
+    image: mariadb:latest
     container_name: seafile-db
     restart: unless-stopped
     volumes:
-      - ./seafile-db-data:/app
-      - ./seafile-db-lock:/run/mysqld
+      - ./seafile-db-data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 ```
@@ -201,12 +200,11 @@ services:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 
   seafile-db:
-    image: wangxian/alpine-mysql:latest
+    image: mariadb:latest
     container_name: seafile-db
     restart: unless-stopped
     volumes:
-      - ./seafile-db-data:/app
-      - ./seafile-db-lock:/run/mysqld
+      - ./seafile-db-data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=EvenMoreSuperSecretDatabasePassword
 
