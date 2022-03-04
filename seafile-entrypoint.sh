@@ -177,7 +177,7 @@ update_config() {
   sed -i "s/${OLD}/${NEW}/g" $CONFIG_FILE
   else
     NEW="$VARIABLE_NAME = \"${VARIABLE_VALUE}\""
-    echo ${NEW} >> $CONFIG_FILE
+    su - seafile -c 'echo ${NEW} >> $CONFIG_FILE'
   fi
 }
 
