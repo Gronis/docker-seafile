@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 
-ENV VERSION=9.0.7
+ENV VERSION=9.0.9
 ENV DOCKERIZE_VERSION v0.6.1
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
