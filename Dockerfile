@@ -1,7 +1,7 @@
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 
-ENV VERSION=9.0.4
+ENV VERSION=9.0.7
 ENV DOCKERIZE_VERSION v0.6.1
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
@@ -11,7 +11,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-ins
     libffi-dev libjpeg-dev zlib1g-dev && \
   pip3 install --timeout=3600 \
     Pillow pylibmc captcha jinja2 sqlalchemy python3-ldap \
-    django-pylibmc django-simple-captcha mysqlclient \
+    django-pylibmc django-simple-captcha mysqlclient lxml \
     future pycryptodome==3.12.0 cffi==1.14.0 && \
   apt-get purge -y \
     python3-dev python3-setuptools python3-pip python3-wheel \
