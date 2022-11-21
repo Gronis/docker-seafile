@@ -23,7 +23,19 @@ trapped() {
   control_seafile "stop"
 }
 
+wait_for_database() {
+  set +u
+  if [ -n "${MYSQL_SERVER}" ]
+  then
+    set -u
+    echo "Waiting for MYSQL database."
+    DOCKERIZE_TIMEOUT=${DOCKERIZE_TIMEOUT:-"60s"}
+    dockerize -timeout ${DOCKERIZE_TIMEOUT} -wait tcp://${MYSQL_SERVER}:${MYSQL_PORT:-3306}
+  fi
+}
+
 autorun() {
+  wait_for_database
   # Update if neccessary
   if [ $OLD_VERSION != $VERSION ]; then
     full_update
@@ -58,6 +70,7 @@ autorun() {
 
 run_only() {
   local SH_DB_DIR="${DATADIR}/${SEAHUB_DB_DIR}"
+  wait_for_database
   control_seafile "start"
   control_seahub "start"
   keep_in_foreground
@@ -81,9 +94,7 @@ choose_setup() {
 setup_mysql() {
   echo "setup_mysql"
 
-  # Wait for MySQL to boot up
-  DOCKERIZE_TIMEOUT=${DOCKERIZE_TIMEOUT:-"60s"}
-  dockerize -timeout ${DOCKERIZE_TIMEOUT} -wait tcp://${MYSQL_SERVER}:${MYSQL_PORT:-3306}
+  wait_for_database
 
   set +u
   OPTIONAL_PARMS="$([ -n "${MYSQL_ROOT_PASSWORD}" ] && printf '%s' "-r ${MYSQL_ROOT_PASSWORD}")"
@@ -327,6 +338,7 @@ full_update(){
   echo "Upgrading from $OLD_VERSION to $VERSION"
   echo "---------------------------------------"
   echo ""
+  wait_for_database
   # Iterate through all the major upgrade scripts and apply them
   for i in `ls ${INSTALLPATH}/upgrade/`; do
     if [ `echo $i | grep "upgrade_${OLD_MAJOR_VERSION}"` ]; then
