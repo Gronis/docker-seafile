@@ -1,5 +1,6 @@
 #!/bin/bash
 
+PYTHONPATH="/opt/haiwen/seafile-server-${VERSION}/seafile/lib/python3/site-packages"
 DATADIR=${DATADIR:-"/seafile"}
 BASEPATH=${BASEPATH:-"/opt/haiwen"}
 INSTALLPATH=${INSTALLPATH:-"${BASEPATH}/$(ls -1 ${BASEPATH} | grep -E '^seafile-server-[0-9.-]+')"}
@@ -250,7 +251,7 @@ link_files() {
   for SEADIR in ${LINK_LIST[@]}
   do
     ARGS=($(echo $SEADIR | tr ":" "\n"))
-    if [ -e "${ARGS[0]}" ]
+    if [ ! -L "${ARGS[1]}" ] && [ -e "${ARGS[0]}" ]
     then
       echo "Linking ${ARGS[1]} => ${ARGS[0]}"
       su - seafile -c "ln -sf ${ARGS[0]} ${ARGS[1]}"
