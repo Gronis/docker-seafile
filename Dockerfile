@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 
-ENV VERSION=9.0.9
+ENV VERSION=9.0.10
 ENV DOCKERIZE_VERSION v0.6.1
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
@@ -23,7 +23,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-ins
   && mkdir -p /opt/haiwen /seafile/ \
   && curl -sL $(curl -sL https://www.seafile.com/en/download/ \
     | grep -oE 'https://.*seafile-server.*x86-64.tar.gz' \
-    | sed -e "s/[0-9]\.[0-9]\.[0-9]/$VERSION/g" | sort -r | head -1) \
+    | sed -e "s/[0-9]+\.[0-9]+\.[0-9]+/$VERSION/g" | sort -r | head -1) \
     | tar -C /opt/haiwen/ -xz \
   && chown -R seafile:seafile /seafile /opt/haiwen
 
