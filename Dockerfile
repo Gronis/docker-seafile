@@ -10,7 +10,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-ins
     build-essential autoconf libtool pkg-config \
     libffi-dev libjpeg-dev zlib1g-dev && \
   pip3 install --timeout=3600 \
-    Pillow pylibmc captcha jinja2 sqlalchemy python3-ldap \
+    Pillow pylibmc captcha jinja2 "sqlalchemy<2" python3-ldap \
     django-pylibmc django-simple-captcha mysqlclient lxml \
     future pycryptodome==3.12.0 cffi==1.14.0 && \
   apt-get purge -y \
