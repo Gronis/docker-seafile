@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 
-ENV VERSION=9.0.10
+ENV VERSION=10.0.1
 ENV DOCKERIZE_VERSION v0.6.1
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
@@ -10,20 +10,26 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-ins
     build-essential autoconf libtool pkg-config \
     libffi-dev libjpeg-dev zlib1g-dev && \
   pip3 install --timeout=3600 \
-    Pillow pylibmc captcha jinja2 "sqlalchemy<2" python3-ldap \
-    django-pylibmc django-simple-captcha mysqlclient lxml \
-    future pycryptodome==3.12.0 cffi==1.14.0 && \
+    pylibmc jinja2 "sqlalchemy<2" python3-ldap \
+    django-pylibmc lxml \
+    future==0.18.* mysqlclient==2.1.* \
+    Pillow==9.5.0 captcha==0.5.* \
+    django_simple_captcha==0.5.20 \
+    djangosaml2==1.5.* pysaml2==7.2.* \
+    pycryptodome==3.16.* cffi==1.15.1 && \
   apt-get purge -y \
     python3-dev python3-setuptools python3-pip python3-wheel \
     build-essential autoconf libtool pkg-config && \
   apt-get autoremove -y && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache /usr/share/doc/* && \
   find / -type f -name '*.py[co]' -delete -or -type d -name '__pycache__' -delete && \
   curl -L https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar -xz -C /usr/local/bin && \
-  useradd -d /seafile -M -s /bin/bash -c "Seafile User" seafile \
-  && mkdir -p /opt/haiwen /seafile/ \
-  && curl -sL $(curl -sL https://www.seafile.com/en/download/ \
+  useradd -d /seafile -M -s /bin/bash -c "Seafile User" seafile && \
+  mkdir -p /opt/haiwen /seafile/
+
+RUN curl -sL $(curl -sL https://www.seafile.com/en/download/ \
     | grep -oE 'https://.*seafile-server.*x86-64.tar.gz' \
-    | sed -e "s/[0-9]+\.[0-9]+\.[0-9]+/$VERSION/g" | sort -r | head -1) \
+    | sed -e "s/[0-9]+\.[0-9]+\.[0-9]+/$VERSION/g" | grep $VERSION \
+    | sort -r | head -1) \
     | tar -C /opt/haiwen/ -xz \
   && chown -R seafile:seafile /seafile /opt/haiwen
 

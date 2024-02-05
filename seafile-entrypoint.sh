@@ -42,11 +42,12 @@ autorun() {
     full_update
   fi
   echo $VERSION > $DATADIR/version
-  # Needed to check the return code
-  set +e
+
+  update_gunicorn_config
+  update_seahub_config
+
   control_seafile "start"
   local RET=$?
-  set -e
   # Try an initial setup on error
   if [ ${RET} -eq 255 ]
   then
@@ -56,9 +57,6 @@ autorun() {
   then
     exit 1
   fi
-
-  update_gunicorn_config
-  update_seahub_config
 
   if [ ${SEAFILE_FASTCGI:-} ]
   then
@@ -177,6 +175,11 @@ update_config() {
     fi
     VARIABLE_VALUE=$(env | grep $VARIABLE_NAME | sed "s/${VARIABLE_NAME}=//g")
   fi
+  if [ $# -ge 4 ] && [[ "$4" != "string" ]]; then
+    PREPOSTFIX=""
+  else
+    PREPOSTFIX="\""
+  fi
   echo "Updating $VARIABLE_NAME in $CONFIG_FILE."
   ESCAPED_VALUE=$(printf '%s\n' "$VARIABLE_VALUE" | sed -e 's/[\/&]/\\&/g')
   set +e
@@ -185,10 +188,10 @@ update_config() {
   set -e
   if [[ "${EXISTS}" -eq 0 ]]; then
     OLD="$VARIABLE_NAME = .*$"
-    NEW="$VARIABLE_NAME = \"${ESCAPED_VALUE}\""
+    NEW="$VARIABLE_NAME = ${PREPOSTFIX}${ESCAPED_VALUE}${PREPOSTFIX}"
   sed -i "s/${OLD}/${NEW}/g" $CONFIG_FILE
   else
-    NEW="$VARIABLE_NAME = \"${VARIABLE_VALUE}\""
+    NEW="$VARIABLE_NAME = ${PREPOSTFIX}${VARIABLE_VALUE}${PREPOSTFIX}"
     su - seafile -c "echo ${NEW} >> $CONFIG_FILE"
   fi
 }
@@ -198,12 +201,18 @@ update_gunicorn_config() {
   # Must bind 0.0.0.0 instead of 127.0.0.1
   CONFIG_FILE=/seafile/conf/gunicorn.conf.py
   update_config "bind" $CONFIG_FILE "0.0.0.0:${VIRTUAL_PORT}"
+  update_config "daemon" $CONFIG_FILE True boolean
 }
 
 update_seahub_config(){
   CONFIG_FILE=/seafile/conf/seahub_settings.py
   update_config "FILE_SERVER_ROOT" $CONFIG_FILE
   update_config "SERVICE_URL" $CONFIG_FILE
+}
+
+update_gunicorn_config_disable_daemon_mode() {
+  CONFIG_FILE=/seafile/conf/gunicorn.conf.py
+  update_config "daemon" $CONFIG_FILE False boolean
 }
 
 move_files() {
@@ -276,7 +285,7 @@ keep_in_foreground() {
       pkill -0 -f "${SEAFILE_PROC}"
       sleep 1
     done
-    sleep 5
+    sleep 20
   done
 }
 
@@ -293,43 +302,48 @@ _EOF_
 }
 
 control_seafile() {
+  set +e
   su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seafile.sh "$@""
   local RET=$?
   if [ $RET -gt 0 ]; then
     print_log
   fi
+  set -e
   return ${RET}
 }
 
 control_seahub() {
+  set +e
   su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seahub.sh "$@""
   local RET=$?
+
+  if [ $RET -gt 0 ] && [[ "$@" == "start" ]]; then
+    update_gunicorn_config_disable_daemon_mode
+    su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seahub.sh "$@""
+    RET=$?
+  fi
+
   if [ $RET -gt 0 ]; then
     print_log
   fi
+  set -e
   return ${RET}
 }
 
 print_log() {
-    if [ -e $INSTALLPATH/../logs ]
-    then
-      sleep 2
-      echo ""
-      echo "---------------------------------------"
-      echo "seafile.log:"
-      echo "---------------------------------------"
-      cat $INSTALLPATH/../logs/seafile.log
-      echo ""
-      echo "---------------------------------------"
-      echo "controller.log:"
-      echo "---------------------------------------"
-      cat $INSTALLPATH/../logs/controller.log
-      echo ""
-      echo "---------------------------------------"
-      echo "ccnet.log:"
-      echo "---------------------------------------"
-      cat $INSTALLPATH/../logs/ccnet.log
+  if [ -e $INSTALLPATH/../logs ]; then
+    return
+  fi
+  sleep 2
+  for file in $INSTALLPATH/../logs/*; do
+    if [ -f "$file" ]; then
+        echo "-----------------------------"
+        echo "$(basename "$file"):"
+        echo "-----------------------------"
+        cat  "$file"
+        echo ""
     fi
+  done
 }
 
 full_update(){
