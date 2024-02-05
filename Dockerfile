@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM --platform=linux/amd64 debian:bullseye-slim
 MAINTAINER Robin Grönerg <robingronberg@gmail.com>
 
 ENV VERSION=10.0.1

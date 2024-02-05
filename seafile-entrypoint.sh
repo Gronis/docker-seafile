@@ -14,10 +14,30 @@ python3 --version
 ldd --version
 ls ${BASEPATH}/ccnet
 
+# Enable debugging mode
+# set -x
 
 set -e
 set -u
 set -o pipefail
+
+declare -a errexit_stack
+push_exit_on_error_flag() {
+    errexit_stack+=("$-")
+}
+
+pop_exit_on_error_flag() {
+    if [ ${#errexit_stack[@]} -gt 0 ]; then
+        errexit_setting="${errexit_stack[-1]}"
+        unset 'errexit_stack[-1]'
+
+        if [[ "$errexit_setting" == *"e"* ]]; then
+            set -e
+        else
+            set +e
+        fi
+    fi
+}
 
 trapped() {
   control_seahub "stop"
@@ -35,6 +55,12 @@ wait_for_database() {
   fi
 }
 
+wait_for_seafile() {
+    echo "Waiting for seafile server to start."
+    DOCKERIZE_TIMEOUT=${DOCKERIZE_TIMEOUT:-"60s"}
+    dockerize -timeout ${DOCKERIZE_TIMEOUT} -wait tcp://localhost:8082
+}
+
 autorun() {
   wait_for_database
   # Update if neccessary
@@ -46,17 +72,25 @@ autorun() {
   update_gunicorn_config
   update_seahub_config
 
+  # Must disable exit on error
+  set +e
   control_seafile "start"
   local RET=$?
+  set -e
   # Try an initial setup on error
   if [ ${RET} -eq 255 ]
   then
     choose_setup
     control_seafile "start"
+    wait_for_seafile
+    control_seahub "start"
   elif [ ${RET} -gt 0 ]
   then
     exit 1
   fi
+
+  wait_for_seafile
+
 
   if [ ${SEAFILE_FASTCGI:-} ]
   then
@@ -71,6 +105,7 @@ run_only() {
   local SH_DB_DIR="${DATADIR}/${SEAHUB_DB_DIR}"
   wait_for_database
   control_seafile "start"
+  wait_for_seafile
   control_seahub "start"
   keep_in_foreground
 }
@@ -99,6 +134,8 @@ setup_mysql() {
   OPTIONAL_PARMS="$([ -n "${MYSQL_ROOT_PASSWORD}" ] && printf '%s' "-r ${MYSQL_ROOT_PASSWORD}")"
   set -u
 
+  push_exit_on_error_flag
+  set +e
   su - seafile -c  ". /tmp/seafile.env; ${INSTALLPATH}/setup-seafile-mysql.sh auto \
     -n "${SEAFILE_NAME}" \
     -i "${SEAFILE_ADDRESS}" \
@@ -112,6 +149,7 @@ setup_mysql() {
     ${OPTIONAL_PARMS}"
 
   setup_seahub
+  pop_exit_on_error_flag
   move_and_link
 }
 
@@ -161,6 +199,10 @@ move_and_link() {
 update_config() {
   VARIABLE_NAME=$1
   CONFIG_FILE=$2
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "$CONFIG_FILE does not exists, skipping..."
+    return
+  fi
   if [ $# -ge 3 ]; then
     VARIABLE_VALUE=$3
   else
@@ -274,6 +316,9 @@ link_files() {
 }
 
 keep_in_foreground() {
+  echo "Seafile startup completed"
+  echo "Container will stop if any seafile related process exits"
+  echo ""
   # As there seems to be no way to let Seafile processes run in the foreground we
   # need a foreground process. This has a dual use as a supervisor script because
   # as soon as one process is not running, the command returns an exit code >0
@@ -302,17 +347,19 @@ _EOF_
 }
 
 control_seafile() {
+  push_exit_on_error_flag
   set +e
   su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seafile.sh "$@""
   local RET=$?
   if [ $RET -gt 0 ]; then
     print_log
   fi
-  set -e
+  pop_exit_on_error_flag
   return ${RET}
 }
 
 control_seahub() {
+  push_exit_on_error_flag
   set +e
   su - seafile -c ". /tmp/seafile.env; ${INSTALLPATH}/seahub.sh "$@""
   local RET=$?
@@ -326,7 +373,7 @@ control_seahub() {
   if [ $RET -gt 0 ]; then
     print_log
   fi
-  set -e
+  pop_exit_on_error_flag
   return ${RET}
 }
 
